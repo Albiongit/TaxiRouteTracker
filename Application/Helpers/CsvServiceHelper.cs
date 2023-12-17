@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Application.Helpers;
 
-public class CsvServiceHelper
+public static class CsvServiceHelper
 {
     public static List<T> ReadCsv<T, TMap>(string filePath) where TMap : ClassMap<T>
     {
