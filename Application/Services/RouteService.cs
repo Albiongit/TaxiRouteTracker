@@ -33,7 +33,7 @@ public class RouteService
         }
     }
 
-    public List<string> GetAllRouteAddresses(List<TaxiRoutePositionModel> allTaxiRoutes)
+    public List<string> GetAllRouteAddresses(List<TaxiRoutePositionModel> allTaxiRoutes, Action<double> progressCallback)
     {
         List<string> allPassengerRoutes = new List<string>();
 
@@ -47,6 +47,8 @@ public class RouteService
             StringBuilder newAddressToBeAdded = new StringBuilder();
 
             int commonCounter = 0;
+            int totalRecords = allTaxiRoutes.Count;
+            int processedRecords = 0;
 
             foreach (var position in allTaxiRoutes)
             {
@@ -100,6 +102,11 @@ public class RouteService
                     lastAddressAdded.Clear();
                     commonCounter = 0;
                 }
+
+                processedRecords++;
+                double progress = ((double)processedRecords / totalRecords) * 100;
+                progress = Math.Min(progress, 100); // Ensure progress is capped at 100%
+                progressCallback?.Invoke(progress);
             }
 
             if(passengerRoute.Length > 0)
