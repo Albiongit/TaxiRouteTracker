@@ -21,7 +21,7 @@ public class Program
 
         // Test first 1000 records with progress display
         Console.WriteLine("Processing records: 0%");
-        var allVisitedAddressesPerPassengerList = routeService.GetAllRouteAddresses(taxiRoutePositionsDataList.Take(1000).ToList(), progress => Console.WriteLine($"Processing records: {progress}%")
+        var allVisitedAddressesPerPassengerList = routeService.GetAllRouteAddresses(taxiRoutePositionsDataList, progress => Console.WriteLine($"Processing records: {progress}%")
         );
         Console.WriteLine(); // Move to the next line after progress display
 
