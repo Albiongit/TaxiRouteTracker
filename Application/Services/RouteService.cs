@@ -50,6 +50,7 @@ public class RouteService
             int totalRecords = allTaxiRoutes.Count;
             int processedRecords = 0;
 
+            // Time complexity - O(n) where n is the number of records in the taxi device dataset. Space complexity - O(1)
             foreach (var position in allTaxiRoutes)
             {
                 if (position.HasPassenger)
