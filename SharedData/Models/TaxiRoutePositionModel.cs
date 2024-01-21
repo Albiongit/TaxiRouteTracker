@@ -7,4 +7,5 @@ public class TaxiRoutePositionModel
     public bool IsActive { get; set; }
     public bool HasPassenger { get; set; }
     public bool IsTaximeterOn { get; set; }
+    public DateTime Time { get; set; }
 }

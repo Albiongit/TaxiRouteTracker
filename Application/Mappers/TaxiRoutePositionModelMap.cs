@@ -12,5 +12,6 @@ public class TaxiRoutePositionModelMap : ClassMap<TaxiRoutePositionModel>
         Map(x => x.IsActive).Name("Di1");
         Map(x => x.HasPassenger).Name("Di2");
         Map(x => x.IsTaximeterOn).Name("Di3");
+        Map(x => x.Time).Name("DeviceDateTime");
     }
 }

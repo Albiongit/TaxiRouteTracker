@@ -1,0 +1,26 @@
+309 18 16 6 100
+
+2_3 Zagrebi_2_3 54
+16_17 Sami_Plakolli_16_17 8
+0_1 Zagrebi_0_1 5
+16_17 Sami_Plakolli_16_17 14
+16_17 Sami_Plakolli_16_17 35
+0_1 Sami_Plakolli_0_1 5
+1_2 Sami_Plakolli_1_2 5
+4_5 Sami_Plakolli_4_5 5
+5_6 Sami_Plakolli_5_6 15
+5_6 Fahri_Fazliu_5_6 5
+1_2 Fahri_Fazliu_1_2 5
+5_6 Fatmir_Krasniqi_5_6 15
+5_6 Fatmir_Krasniqi_5_6 15
+5_6 Ibrahim_Fehmiu_5_6 15
+3_4 Nesibe_Zhuri_3_4 7
+5_6 Ibrahim_Fehmiu_5_6 101
+
+
+3 Zagrebi_2_3 Sami_Plakolli_16_17 Zagrebi_0_1
+1 Sami_Plakolli_16_17
+7 Sami_Plakolli_16_17 Sami_Plakolli_0_1 Sami_Plakolli_1_2 Sami_Plakolli_4_5 Sami_Plakolli_5_6 Fahri_Fazliu_5_6 Fahri_Fazliu_1_2
+1 Fatmir_Krasniqi_5_6
+1 Fatmir_Krasniqi_5_6
+3 Ibrahim_Fehmiu_5_6 Nesibe_Zhuri_3_4 Ibrahim_Fehmiu_5_6
