@@ -12,6 +12,7 @@ public class RouteService
     private const string ProjectName = "TaxiRouteTracker";
     private const string NominationOpenStreetMapApiUrl = "https://nominatim.openstreetmap.org/reverse?format=json&lat={0}&lon={1}";
     private const string NominationOpenStreetMapNodeApiUrl = "https://overpass-api.de/api/interpreter?data=[out:json];way({0});(._;%3E;);out;";
+    private const string CoordinateFiller = "00";
 
     public string GetAddress(double latitude, double longitude)
     {
@@ -194,7 +195,6 @@ public class RouteService
 
                 apiUrl.Clear();
             }
-
         }
 
         return roadSegments;
@@ -233,17 +233,41 @@ public class RouteService
 
         elements = JsonConvert.DeserializeObject<NodesElement>(jsonResponse);
 
-        for(int i = 0; i < elements.Elements.Count - 1; i++)
+        StringBuilder currentLonValue = new StringBuilder();
+        StringBuilder currentLatValue = new StringBuilder();
+        StringBuilder nextLonValue = new StringBuilder();
+        StringBuilder nextLatValue = new StringBuilder();
+
+        for (int i = 0; i < elements!.Elements.Count - 1; i++)
         {
+            currentLonValue.Append((elements.Elements[i].Lon.ToString().Replace(".", "") + CoordinateFiller).Substring(0, 8));
+            currentLatValue.Append((elements.Elements[i].Lat.ToString().Replace(".", "") + CoordinateFiller).Substring(0, 8));
+
+            if(elements.Elements[i + 1].Lon == 0)
+            {
+                nextLonValue.Append((elements.Elements[i].Lon.ToString().Replace(".", "").Substring(0, 6) + CoordinateFiller).Substring(0, 8));
+                nextLatValue.Append((elements.Elements[i].Lat.ToString().Replace(".", "").Substring(0, 6) + CoordinateFiller).Substring(0, 8));
+            }
+            else
+            {
+                nextLonValue.Append((elements.Elements[i + 1].Lon.ToString().Replace(".", "") + CoordinateFiller).Substring(0, 8));
+                nextLatValue.Append((elements.Elements[i + 1].Lat.ToString().Replace(".", "") + CoordinateFiller).Substring(0, 8));
+            }
+
             RoadSegment seg = new RoadSegment();
 
-            seg.Name = $"{roadName}_{i}_{i + 1}";
+            seg.Name = $"{roadName}_{currentLonValue}{currentLatValue}_{nextLonValue}{nextLatValue}";
             seg.StartNode = elements.Elements[i];    
             seg.EndNode = elements.Elements[i + 1];
-            seg.StartNodeNumber = i;
-            seg.EndNodeNumber = i + 1;
+            seg.StartNodeNumber = $"{currentLonValue}{currentLatValue}";
+            seg.EndNodeNumber = $"{nextLonValue}{nextLatValue}";
 
             segments.Add(seg);
+
+            currentLonValue.Clear();
+            currentLatValue.Clear();
+            nextLonValue.Clear();
+            nextLatValue.Clear();
         }
 
         return segments;

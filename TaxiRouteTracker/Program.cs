@@ -16,15 +16,15 @@ public class Program
 
 
         // Clean dataset - test only 100 records
-        taxiRoutePositionsDataList = taxiRoutePositionsDataList.Where(item => item.IsActive).Take(100).ToList();
+        taxiRoutePositionsDataList = taxiRoutePositionsDataList.Where(item => item.IsActive).Take(50).ToList();
 
         RouteService routeService = new RouteService();
 
         var testList = routeService.GetAllRouteAddressAndId(taxiRoutePositionsDataList);
 
-        var x = routeService.GetRoadSegments(testList);
+        var roadSegments = routeService.GetRoadSegments(testList);
 
-        var segments = x.SelectMany(x => x.Select(x => new { x.Name, x.StartNode, x.EndNode, x.StartNodeNumber, x.EndNodeNumber })).ToList();
+        var segments = roadSegments.SelectMany(x => x.Select(x => new { x.Name, x.StartNode, x.EndNode, x.StartNodeNumber, x.EndNodeNumber })).ToList();
 
         List<VisitedSegement> allvisitedSegmentsAndInfo = new List<VisitedSegement>();
         string addedSegment = "";
@@ -96,14 +96,24 @@ public class Program
 
         List<string> finalVisitedSegments = new List<string>();
 
-        Console.WriteLine($"{allvisitedSegmentsAndInfo.Select(x => x.TimeAmount).Sum()} {allvisitedSegmentsAndInfo.Select(x => x.Name).Count() + 2} {allvisitedSegmentsAndInfo.Select(x => x.Name).Count()} {allvisitedSegmentsAndInfo.GroupBy(x => x.RouteCounter).Count()} 100");
+        // Grouper segments for general infos abous visisted segments with their average time
+        var groupedVisitedSegments = allvisitedSegmentsAndInfo.GroupBy(seg => seg.Name)
+                                             .Select(group => new
+                                             {
+                                                 Name = group.Key,
+                                                 StartNodeNumber = group.Select(seg => seg.StartNodeNumber).First(),
+                                                 EndNodeNumber = group.Select(seg => seg.EndNodeNumber).First(),
+                                                 AverageTimeAmount = group.Average(seg => seg.TimeAmount)
+                                             });
 
-        finalVisitedSegments.Add($"{allvisitedSegmentsAndInfo.Select(x => x.TimeAmount).Sum()} {allvisitedSegmentsAndInfo.Select(x => x.Name).Count() + 2} {allvisitedSegmentsAndInfo.Select(x => x.Name).Count()} {allvisitedSegmentsAndInfo.GroupBy(x => x.RouteCounter).Count()} 100\n");
+        Console.WriteLine($"{groupedVisitedSegments.Select(x => x.AverageTimeAmount).Sum()} {groupedVisitedSegments.Select(x => x.Name).Count() + 2} {groupedVisitedSegments.Select(x => x.Name).Count()} {allvisitedSegmentsAndInfo.GroupBy(x => x.RouteCounter).Count()} 100");
 
-        foreach (var visitedSeg in allvisitedSegmentsAndInfo)
+        finalVisitedSegments.Add($"{groupedVisitedSegments.Select(x => x.AverageTimeAmount).Sum()} {groupedVisitedSegments.Select(x => x.Name).Count() + 2} {groupedVisitedSegments.Select(x => x.Name).Count()} {allvisitedSegmentsAndInfo.GroupBy(x => x.RouteCounter).Count()} 100\n");
+
+        foreach (var visitedSeg in groupedVisitedSegments)
         {
-            Console.WriteLine($"{visitedSeg.StartNodeNumber}_{visitedSeg.EndNodeNumber} {visitedSeg.Name} {visitedSeg.TimeAmount}");
-            finalVisitedSegments.Add($"{visitedSeg.StartNodeNumber}_{visitedSeg.EndNodeNumber} {visitedSeg.Name} {visitedSeg.TimeAmount}");
+            Console.WriteLine($"{visitedSeg.StartNodeNumber} {visitedSeg.EndNodeNumber} {visitedSeg.Name} {visitedSeg.AverageTimeAmount}");
+            finalVisitedSegments.Add($"{visitedSeg.StartNodeNumber} {visitedSeg.EndNodeNumber} {visitedSeg.Name} {visitedSeg.AverageTimeAmount}");
         }
 
         finalVisitedSegments.Add("\n");

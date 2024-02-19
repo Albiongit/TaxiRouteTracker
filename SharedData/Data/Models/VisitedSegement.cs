@@ -2,9 +2,9 @@
 
 public class VisitedSegement
 {
-    public int StartNodeNumber { get; set; }
-    public int EndNodeNumber { get; set; }
-    public string Name { get; set; }
+    public string StartNodeNumber { get; set; } = "";
+    public string EndNodeNumber { get; set; } = "";
+    public string Name { get; set; } = "";
     public int TimeAmount { get; set; }
     public DateTime Time { get; set; }
     public int RouteCounter { get; set; }
