@@ -1,6 +1,7 @@
 ﻿using Application.Helpers;
 using Application.Mappers;
 using Application.Services;
+using SharedData.Data.Enums;
 using SharedData.Data.Models;
 using SharedData.Models;
 
@@ -8,15 +9,21 @@ public class Program
 {
     static void Main()
     {
-        // Specify the path to dataset CSV file
+        // Specify the path to dataset CSV files
         string csvFile = CsvServiceHelper.GetCsvFilePath("SharedData", "Data", "Csv", "TaxiRouteData-October.csv");
+        string csvFile1 = CsvServiceHelper.GetCsvFilePath("SharedData", "Data", "Csv", "TaxiRouteData-October1.csv");
 
         //Read csv data and create a list from them
+        Console.WriteLine("First csv file - Car 1");
         List<TaxiRoutePositionModel> taxiRoutePositionsDataList = CsvServiceHelper.ReadCsvWithProgress<TaxiRoutePositionModel, TaxiRoutePositionModelMap>(csvFile, progress => Console.WriteLine($"Reading data: {progress}%"));
 
+        Console.WriteLine("Second csv file - Car 2");
+        List<TaxiRoutePositionModel> taxiRoutePositionsDataList1 = CsvServiceHelper.ReadCsvWithProgress<TaxiRoutePositionModel, TaxiRoutePositionModelMap>(csvFile1, progress => Console.WriteLine($"Reading data: {progress}%"));
+                
+        taxiRoutePositionsDataList.AddRange(taxiRoutePositionsDataList1);
 
-        // Clean dataset - test only 100 records
-        taxiRoutePositionsDataList = taxiRoutePositionsDataList.Where(item => item.IsActive).Take(50).ToList();
+        // Clean dataset - get only data between 15:00 and 18:00 for each day
+        taxiRoutePositionsDataList = taxiRoutePositionsDataList.Where(item => item.IsActive && item.Time.Hour >= 15 && item.Time.Hour <= 18).ToList();
 
         RouteService routeService = new RouteService();
 
@@ -30,16 +37,48 @@ public class Program
         string addedSegment = "";
 
         int routeCounter = 0;
+        int rightDir = 0;
+        int leftDir = 0;
+        int straightDir = 0;
+        int backDir = 0;
 
-        foreach (var route in taxiRoutePositionsDataList)
+        for (int i = 0; i < taxiRoutePositionsDataList.Count; i++)
         {
 
-            if (route.HasPassenger)
+            if (taxiRoutePositionsDataList[i].HasPassenger)
             {
-                var visitedSegment = segments.Where(x => Math.Min(x.StartNode.Lat, x.EndNode.Lat) <= route.Latitude
-                                                   && Math.Max(x.StartNode.Lat, x.EndNode.Lat) >= route.Latitude
-                                                   && Math.Min(x.StartNode.Lon, x.EndNode.Lon) <= route.Longitute
-                                                   && Math.Max(x.StartNode.Lon, x.EndNode.Lon) >= route.Longitute).FirstOrDefault();
+                var visitedSegment = segments.Where(x => Math.Min(x.StartNode.Lat, x.EndNode.Lat) <= taxiRoutePositionsDataList[i].Latitude
+                                                   && Math.Max(x.StartNode.Lat, x.EndNode.Lat) >= taxiRoutePositionsDataList[i].Latitude
+                                                   && Math.Min(x.StartNode.Lon, x.EndNode.Lon) <= taxiRoutePositionsDataList[i].Longitute
+                                                   && Math.Max(x.StartNode.Lon, x.EndNode.Lon) >= taxiRoutePositionsDataList[i].Longitute).FirstOrDefault();
+
+                if(i < taxiRoutePositionsDataList.Count - 1)
+                {
+                    if(taxiRoutePositionsDataList[i + 1].HasPassenger)
+                    {
+                        // Calculate bearing
+                        double bearing = MovementAnalyzer.CalculateBearing(taxiRoutePositionsDataList[i].Longitute, taxiRoutePositionsDataList[i].Latitude, taxiRoutePositionsDataList[i + 1].Longitute, taxiRoutePositionsDataList[i + 1].Latitude);
+
+                        // Determine direction
+                        Direction direction = MovementAnalyzer.DetermineDirection(bearing);
+
+                        switch(direction)
+                        {
+                            case Direction.Right:
+                                rightDir++;
+                                break;
+                            case Direction.Left: 
+                                leftDir++; 
+                                break;
+                            case Direction.Straight:
+                                straightDir++;
+                                break;
+                            default:
+                                backDir++;
+                                break;
+                        }
+                    }
+                }
 
                 if(visitedSegment != null)
                 {
@@ -51,8 +90,12 @@ public class Program
                             EndNodeNumber = visitedSegment.EndNodeNumber,
                             Name = visitedSegment.Name,
                             TimeAmount = 5,
-                            Time = route.Time,
-                            RouteCounter = routeCounter
+                            Time = taxiRoutePositionsDataList[i].Time,
+                            RouteCounter = routeCounter,
+                            RightDirection = rightDir,
+                            LeftDirection = leftDir,
+                            StraightDirection = straightDir,
+                            BackDirection = backDir
                         });
 
                         addedSegment = visitedSegment.Name;
@@ -61,7 +104,7 @@ public class Program
                     {
                         if(visitedSegment.Name == addedSegment)
                         {
-                            TimeSpan timeDiff = route.Time - allvisitedSegmentsAndInfo.Last().Time;
+                            TimeSpan timeDiff = taxiRoutePositionsDataList[i].Time - allvisitedSegmentsAndInfo.Last().Time;
 
                             allvisitedSegmentsAndInfo.Last().TimeAmount += (int)timeDiff.TotalSeconds;
                         }
@@ -75,8 +118,12 @@ public class Program
                                 EndNodeNumber = visitedSegment.EndNodeNumber,
                                 Name = visitedSegment.Name,
                                 TimeAmount = 5,
-                                Time = route.Time,
-                                RouteCounter = routeCounter
+                                Time = taxiRoutePositionsDataList[i].Time,
+                                RouteCounter = routeCounter,
+                                RightDirection = rightDir,
+                                LeftDirection = leftDir,
+                                StraightDirection = straightDir,
+                                BackDirection = backDir
                             });
                         }
                     }
@@ -90,6 +137,11 @@ public class Program
                     routeCounter++;
                 }
             }
+
+            rightDir = 0;
+            leftDir = 0;
+            straightDir = 0;
+            backDir = 0;
         }
 
         Console.WriteLine();
@@ -103,17 +155,21 @@ public class Program
                                                  Name = group.Key,
                                                  StartNodeNumber = group.Select(seg => seg.StartNodeNumber).First(),
                                                  EndNodeNumber = group.Select(seg => seg.EndNodeNumber).First(),
-                                                 AverageTimeAmount = group.Average(seg => seg.TimeAmount)
+                                                 AverageTimeAmount = group.Average(seg => seg.TimeAmount),
+                                                 RightDirection = group.Sum(seg => seg.RightDirection),
+                                                 LeftDirection = group.Sum(seg => seg.LeftDirection),
+                                                 StraightDirection = group.Sum(seg => seg.StraightDirection),
+                                                 BackDirection = group.Sum(seg => seg.BackDirection),
                                              });
 
-        Console.WriteLine($"{groupedVisitedSegments.Select(x => x.AverageTimeAmount).Sum()} {groupedVisitedSegments.Select(x => x.Name).Count() + 2} {groupedVisitedSegments.Select(x => x.Name).Count()} {allvisitedSegmentsAndInfo.GroupBy(x => x.RouteCounter).Count()} 100");
+        Console.WriteLine($"{groupedVisitedSegments.Select(x => x.AverageTimeAmount).Sum().ToString("F0")} {groupedVisitedSegments.Select(x => x.Name).Count() + 2} {groupedVisitedSegments.Select(x => x.Name).Count()} {allvisitedSegmentsAndInfo.GroupBy(x => x.RouteCounter).Count()} 100");
 
-        finalVisitedSegments.Add($"{groupedVisitedSegments.Select(x => x.AverageTimeAmount).Sum()} {groupedVisitedSegments.Select(x => x.Name).Count() + 2} {groupedVisitedSegments.Select(x => x.Name).Count()} {allvisitedSegmentsAndInfo.GroupBy(x => x.RouteCounter).Count()} 100\n");
+        finalVisitedSegments.Add($"{groupedVisitedSegments.Select(x => x.AverageTimeAmount).Sum().ToString("F0")} {groupedVisitedSegments.Select(x => x.Name).Count() + 2} {groupedVisitedSegments.Select(x => x.Name).Count()} {allvisitedSegmentsAndInfo.GroupBy(x => x.RouteCounter).Count()} 100\n");
 
         foreach (var visitedSeg in groupedVisitedSegments)
         {
-            Console.WriteLine($"{visitedSeg.StartNodeNumber} {visitedSeg.EndNodeNumber} {visitedSeg.Name} {visitedSeg.AverageTimeAmount}");
-            finalVisitedSegments.Add($"{visitedSeg.StartNodeNumber} {visitedSeg.EndNodeNumber} {visitedSeg.Name} {visitedSeg.AverageTimeAmount}");
+            Console.WriteLine($"{visitedSeg.StartNodeNumber} {visitedSeg.EndNodeNumber} {visitedSeg.Name} {visitedSeg.AverageTimeAmount.ToString("F0")} {visitedSeg.BackDirection} {visitedSeg.LeftDirection} {visitedSeg.StraightDirection} {visitedSeg.RightDirection}");
+            finalVisitedSegments.Add($"{visitedSeg.StartNodeNumber} {visitedSeg.EndNodeNumber} {visitedSeg.Name} {visitedSeg.AverageTimeAmount.ToString("F0")} {visitedSeg.BackDirection} {visitedSeg.LeftDirection} {visitedSeg.StraightDirection} {visitedSeg.RightDirection}");
         }
 
         finalVisitedSegments.Add("\n");
@@ -124,7 +180,7 @@ public class Program
             finalVisitedSegments.Add($"{completedRoute.Count()} {string.Join(" ", completedRoute.Select(x => x.Name))}");
         }
 
-        ////Save new text file with all the addresses visited in every passenger route
+        //Save new text file with all the addresses visited in every passenger route
         string allVisitedAddressesPerPassengerTxtFile = TxtServiceHelper.GetTxtFilePath("SharedData", "Data", "Txt", "VisitedSegmentsPerPassenger-October.txt");
         TxtServiceHelper.WriteListToTxt(finalVisitedSegments, allVisitedAddressesPerPassengerTxtFile);
 
